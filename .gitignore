@@ -1,0 +1,16 @@
+config.py
+toy-test.py
+.DS_Store
+__pycache__
+.vscode
+*.ipynb
+.ipynb_checkpoints
+data/.RData
+data/.Rhistory
+data/preprocess.R
+data/*.pdf
+results
+*.txt
+*.pkl
+*.prof
+*.log
