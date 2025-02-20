@@ -13,3 +13,7 @@ results
 *.txt
 *.pkl
 *.prof
+grids_shapefil.dbf
+grids_shapefile.prj
+grids_shapefil.shx
+*.ckpt
