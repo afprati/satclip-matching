@@ -6,6 +6,11 @@ import requests
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 from shapely.geometry import Point
+from sklearn.decomposition import PCA
+import sys
+sys.path.append("C:/Users/miame/OneDrive/Backups/Documents/GitHub/satclip/satclip")  # path to the cloned repo
+#from model import SatCLIP
+#from location_encoder import *
 from load import get_satclip
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -60,6 +65,40 @@ def perform_matching(treated_embeddings, untreated_embeddings, treated, untreate
     treated['similarity_score'] = similarity_matrix[treated_indices, untreated_indices]
     return treated
 
+
+# summarizes embeddings with PCA, mean, norm, max, min, and variance
+def summarize_embeddings(embeddings, grid_ids):
+    if embeddings.shape[1] < 3:
+        raise ValueError("Embeddings must have at least 3 dimensions for PCA.")
+
+    # compute PCA (3 components)
+    pca = PCA(n_components=3)
+    principal_components = pca.fit_transform(embeddings)
+
+    # compute statistics
+    mean_val = np.mean(embeddings, axis=1)
+    l2_norm = np.linalg.norm(embeddings, axis=1)
+    max_val = np.max(embeddings, axis=1)
+    min_val = np.min(embeddings, axis=1)
+    variance_val = np.var(embeddings, axis=1)
+
+    # create df with extracted features
+    summary_df = pd.DataFrame({
+        'grid_id': grid_ids.values,
+        'PC1': principal_components[:, 0],
+        'PC2': principal_components[:, 1],
+        'PC3': principal_components[:, 2],
+        'Mean': np.mean(embeddings, axis=1),
+        'L2_Norm': np.linalg.norm(embeddings, axis=1),
+        'Max': np.max(embeddings, axis=1),
+        'Min': np.min(embeddings, axis=1),
+        'Variance': np.var(embeddings, axis=1)
+    })
+    return summary_df
+    
+    return summary_df
+
+
 def main(grid_shapefile_path):
     download_s2_100k()
     s2_100k_gdf = load_s2_100k()
@@ -99,6 +138,15 @@ def main(grid_shapefile_path):
     # save
     treated.to_csv("matched_grid_cells.csv", index=False)
     print("results saved to matched_grid_cells.csv.")
+    
+    # summarize embeddings
+    treated_summary = summarize_embeddings(treated_embeddings, treated['grid_id'])
+    untreated_summary = summarize_embeddings(untreated_embeddings, untreated['grid_id'])
+    combined_summary = pd.concat([treated_summary, untreated_summary], ignore_index=True)
+    
+    # save to csv
+    combined_summary.to_csv("summarized_embeddings.csv", index=False)
+    print("summaries saved to summarized_embeddings.csv.")
     
     return treated
 
